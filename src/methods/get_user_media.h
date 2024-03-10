@@ -9,9 +9,14 @@
 
 #include <node-addon-api/napi.h>
 
+// TODO Remove when `GetDisplayMedia` gets its own implementation
+#include "src/methods/get_display_media.h"
+
 namespace node_webrtc {
 
 class GetUserMedia {
+  // TODO Remove when `GetDisplayMedia` gets its own implementation
+  friend class node_webrtc::GetDisplayMedia;
  public:
   static void Init(Napi::Env, Napi::Object);
 

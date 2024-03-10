@@ -1,3 +1,106 @@
+0.4.6
+=====
+
+New Features
+------------
+
+- Added `target` property to RTCPeerConnection events (thanks, @CharlesRA).
+- Support for additional APIs in `lib/browser.js` (thanks, @piranna).
+- Added a naïve version of `getDeviceMedia` that delegates to `getUserMedia`
+  (thanks, @piranna).
+
+Bug Fixes
+---------
+
+- Although Node 14 support was confirmed in v0.4.5, it was not included in the
+  "engines" property of package.json (thanks, @farnabaz).
+- Potential fix for a crash mentioned in #637 (thanks, @thedracle).
+
+0.4.5
+=====
+
+New Features
+------------
+
+- Updated to WebRTC M81.
+- Added support for Node 14.
+- Added rollback support.
+
+Bug Fixes
+---------
+
+- RTCPeerConnection no longer raises "icegatheringstatechange" when the
+  RTCPeerConnection is closed. Thanks, @arlolra. (#625)
+
+Breaking Changes
+----------------
+
+- With the update from M79 to M81, the `dtx`, `ptime`, and `codecPayloadType`
+  parameters to RTCRtpEncodingParameters no longer take affect. They've also
+  been removed from the WebRTC 1.0 specification (see [here](https://github.com/w3c/webrtc-pc/issues/2350)).
+  Although this is technically a SemVer-breaking change, few users of this
+  library are depending on the removed functionality, and I prefer not to
+  increment the version number at this time.
+
+0.4.4
+=====
+
+New Features
+------------
+
+- `addTrack` now supports multiple MediaStream arguments (#548). Additionally,
+  MediaStreams can now be constructed with arbitrary IDs. For more information,
+  see below. Thanks, @csheely and @sgodin.
+- `setStreams` now supports multiple MediaStream arguments.
+
+MediaStream
+-----------
+
+MediaStreams in node-webrtc can be constructed with arbitrary IDs. For example,
+the following MediaStream, `stream`, has its ID set to "foo".
+
+```js
+const stream = new MediaStream({ id: 'foo' });
+stream.id === 'foo';  // true
+```
+
+0.4.3
+=====
+
+New Features
+------------
+
+- Updated to WebRTC M79.
+- Added support for Node 13.
+- Added support for a number of new standard APIs (see below).
+
+### RTCPeerConnection
+
+- Added support for `restartIce`.
+- Added support for "icecandidateerror" events.
+
+### RTCDtlsTransport
+
+- Added support for `getRemoteCertificates`.
+
+### RTCRtpSender, RTCRtpReceiver & RTCRtpTransceiver
+
+- Added support for `getCapabilities` to RTCRtpSender and RTCRtpReceiver.
+- Added support for `setParameters` to RTCRtpSender.
+- Added support for `setStreams` to RTCRtpSender (at this time, up to one
+  MediaStream argument is supported).
+- Added support for `sendEncodings` to RTCRtpTransceiverInit.
+- Added support for `setCodecPreferences` to RTCRtpTransceiver.
+
+Bug Fixes
+---------
+
+- Fixed a bug where VideoFrame timestamps reported via RTCP were incorrect
+  (#566). Thanks, @lonocvb.
+- Fixed a bug where, in some cases, Ninja builds failed on macOS (#582). Thanks,
+  @taylorhoward92.
+- Fixed bugs related to N-API usage in recent version of Node 12 and 13.
+
 0.4.2
 =====
 

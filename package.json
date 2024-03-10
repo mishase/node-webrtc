@@ -7,7 +7,7 @@
     "p2p",
     "peer"
   ],
-  "version": "0.4.3-dev",
+  "version": "0.4.7-dev",
   "author": "Alan K <ack@modeswitch.org> (http://blog.modeswitch.org)",
   "homepage": "https://github.com/node-webrtc/node-webrtc",
   "bugs": "https://github.com/node-webrtc/node-webrtc/issues",
@@ -26,21 +26,22 @@
     "host": "https://node-webrtc.s3.amazonaws.com"
   },
   "engines": {
-    "node": "^8.11.2 || ^10.0.0 || ^11.0.0 || ^12.0.0"
+    "node": "^8.11.2 || ^10.0.0 || ^11.0.0 || ^12.0.0 || ^13.0.0 || ^14.0.0 || ^15.0.0"
   },
   "dependencies": {
+    "@mapbox/node-pre-gyp": "^1.0.4",
     "nan": "^2.3.2",
     "node-addon-api": "^1.6.2",
-    "node-cmake": "2.3.2",
-    "node-pre-gyp": "^0.13.0"
+    "node-cmake": "2.3.2"
   },
   "optionalDependencies": {
     "domexception": "^1.0.1"
   },
   "bundledDependencies": [
-    "node-pre-gyp"
+    "@mapbox/node-pre-gyp"
   ],
   "devDependencies": {
+    "@fidm/x509": "^1.2.1",
     "aws-sdk": "^2.2.10",
     "browserify-middleware": "^8.1.1",
     "cross-env": "^5.1.4",
@@ -55,7 +56,7 @@
     "karma-tap": "^4.1.4",
     "karma-tap-pretty-reporter": "^4.1.0",
     "minimatch": "^3.0.4",
-    "minimist": "0.0.8",
+    "minimist": "1.2.5",
     "mocha": "^5.2.0",
     "mocha-sugar-free": "^1.4.0",
     "node-fetch": "^2.5.0",
@@ -66,7 +67,7 @@
     "rimraf": "^2.6.2",
     "semver": "^5.5.0",
     "server-destroy": "^1.0.1",
-    "simple-peer": "^9.0.0",
+    "simple-peer": "~9.7.0",
     "tap-spec": "^5.0.0",
     "tape": "^4.9.1",
     "temp": "^0.9.0",

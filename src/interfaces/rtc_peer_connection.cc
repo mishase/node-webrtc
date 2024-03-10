@@ -20,6 +20,7 @@
 #include "src/converters/arguments.h"
 #include "src/converters/interfaces.h"
 #include "src/converters/napi.h"
+#include "src/dictionaries/macros/napi.h"
 #include "src/dictionaries/node_webrtc/rtc_answer_options.h"
 #include "src/dictionaries/node_webrtc/rtc_offer_options.h"
 #include "src/dictionaries/node_webrtc/rtc_session_description_init.h"
@@ -161,6 +162,35 @@ void RTCPeerConnection::OnIceCandidate(const webrtc::IceCandidateInterface* ice_
   }));
 }
 
+static Validation<Napi::Value> CreateRTCPeerConnectionIceErrorEvent(
+    const Napi::Value hostCandidate,
+    const Napi::Value url,
+    const Napi::Value errorCode,
+    const Napi::Value errorText) {
+  auto env = hostCandidate.Env();
+  Napi::EscapableHandleScope scope(env);
+  NODE_WEBRTC_CREATE_OBJECT_OR_RETURN(env, object)
+  NODE_WEBRTC_CONVERT_AND_SET_OR_RETURN(env, object, "hostCandidate", hostCandidate)
+  NODE_WEBRTC_CONVERT_AND_SET_OR_RETURN(env, object, "url", url)
+  NODE_WEBRTC_CONVERT_AND_SET_OR_RETURN(env, object, "errorCode", errorCode)
+  NODE_WEBRTC_CONVERT_AND_SET_OR_RETURN(env, object, "errorText", errorText)
+  return Pure(scope.Escape(object));
+}
+
+void RTCPeerConnection::OnIceCandidateError(const std::string& host_candidate, const std::string& url, int error_code, const std::string& error_text) {
+  Dispatch(CreateCallback<RTCPeerConnection>([this, host_candidate, url, error_code, error_text]() {
+    auto env = Env();
+    auto maybeEvent = Validation<Napi::Value>::Join(curry(CreateRTCPeerConnectionIceErrorEvent)
+            % From<Napi::Value>(std::make_pair(env, host_candidate))
+            * From<Napi::Value>(std::make_pair(env, url))
+            * From<Napi::Value>(std::make_pair(env, error_code))
+            * From<Napi::Value>(std::make_pair(env, error_text)));
+    if (maybeEvent.IsValid()) {
+      MakeCallback("onicecandidateerror", { maybeEvent.UnsafeFromValid() });
+    }
+  }));
+}
+
 void RTCPeerConnection::OnDataChannel(rtc::scoped_refptr<webrtc::DataChannelInterface> channel) {
   auto observer = new DataChannelObserver(_factory, channel);
   Dispatch(CreateCallback<RTCPeerConnection>([this, observer]() {
@@ -225,14 +255,17 @@ Napi::Value RTCPeerConnection::AddTrack(const Napi::CallbackInfo& info) {
     Napi::Error(env, ErrorFactory::CreateInvalidStateError(env, "Cannot addTrack; RTCPeerConnection is closed")).ThrowAsJavaScriptException();
     return env.Undefined();
   }
-  CONVERT_ARGS_OR_THROW_AND_RETURN_NAPI(info, pair, std::tuple<MediaStreamTrack* COMMA Maybe<MediaStream*>>)
+  CONVERT_ARGS_OR_THROW_AND_RETURN_NAPI(info, pair, std::tuple<MediaStreamTrack* COMMA Maybe<std::vector<MediaStream*>>>)
   auto mediaStreamTrack = std::get<0>(pair);
-  Maybe<MediaStream*> mediaStream = std::get<1>(pair);
-  std::vector<std::string> streams;
-  if (mediaStream.IsJust()) {
-    streams.push_back(mediaStream.UnsafeFromJust()->stream()->id());
+  Maybe<std::vector<MediaStream*>> mediaStreams = std::get<1>(pair);
+  std::vector<std::string> streamIds;
+  if (mediaStreams.IsJust()) {
+    streamIds.reserve(mediaStreams.UnsafeFromJust().size());
+    for (auto const& stream : mediaStreams.UnsafeFromJust()) {
+      streamIds.emplace_back(stream->stream()->id());
+    }
   }
-  auto result = _jinglePeerConnection->AddTrack(mediaStreamTrack->track(), streams);
+  auto result = _jinglePeerConnection->AddTrack(mediaStreamTrack->track(), streamIds);
   if (!result.ok()) {
     CONVERT_OR_THROW_AND_RETURN_NAPI(env, &result.error(), error, Napi::Value)
     Napi::Error(env, error).ThrowAsJavaScriptException();
@@ -461,8 +494,8 @@ Napi::Value RTCPeerConnection::SetConfiguration(const Napi::CallbackInfo& info) 
     return env.Undefined();
   }
 
-  webrtc::RTCError rtcError;
-  if (!_jinglePeerConnection->SetConfiguration(configuration, &rtcError)) {
+  auto rtcError = _jinglePeerConnection->SetConfiguration(configuration);
+  if (!rtcError.ok()) {
     CONVERT_OR_THROW_AND_RETURN_NAPI(env, &rtcError, error, Napi::Value)
     Napi::Error(env, error).ThrowAsJavaScriptException();
     return env.Undefined();
@@ -573,6 +606,14 @@ Napi::Value RTCPeerConnection::Close(const Napi::CallbackInfo& info) {
     _factory = nullptr;
   }
 
+  return info.Env().Undefined();
+}
+
+Napi::Value RTCPeerConnection::RestartIce(const Napi::CallbackInfo& info) {
+  (void) info;
+  if (_jinglePeerConnection) {
+    _jinglePeerConnection->RestartIce();
+  }
   return info.Env().Undefined();
 }
 
@@ -696,6 +737,7 @@ void RTCPeerConnection::Init(Napi::Env env, Napi::Object exports) {
     InstanceMethod("setRemoteDescription", &RTCPeerConnection::SetRemoteDescription),
     InstanceMethod("getConfiguration", &RTCPeerConnection::GetConfiguration),
     InstanceMethod("setConfiguration", &RTCPeerConnection::SetConfiguration),
+    InstanceMethod("restartIce", &RTCPeerConnection::RestartIce),
     InstanceMethod("getReceivers", &RTCPeerConnection::GetReceivers),
     InstanceMethod("getSenders", &RTCPeerConnection::GetSenders),
     InstanceMethod("getStats", &RTCPeerConnection::GetStats),
